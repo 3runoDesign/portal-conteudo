@@ -25,9 +25,6 @@ const Login = () => {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isClient, setIsClient] = useState(false);
-
-  const token = useAppSelector((state) => state.auth.token);
 
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -35,10 +32,6 @@ const Login = () => {
   function errorToast() {
     toastIdRef.current = toast({ status: "error", description: 'informe um usuario e senha correta!' })
   }
-
-  useEffect(() => {
-    setIsClient(token != null);
-  }, [isClient]);
 
   const handleLogin = async () => {
     const response = await fetch('/api/login', {
@@ -62,7 +55,6 @@ const Login = () => {
 
   const handleLogout = () => {
     dispatch(clearToken());
-    setIsClient(false);
     router.push('/login');
   };
 

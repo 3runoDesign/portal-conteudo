@@ -15,21 +15,15 @@ import { clearToken } from '~/lib/slices/authSlice';
 import { useRouter } from 'next/navigation';
 
 function HeaderContent() {
-    const [isClient, setIsClient] = useState(false);
     const token = useAppSelector((state) => state.auth.token);
     const dispatch = useAppDispatch();
     const router = useRouter()
 
     const handleLogout = () => {
         dispatch(clearToken());
-        setIsClient(false);
 
         router.refresh();
     };
-
-    useEffect(() => {
-        setIsClient(token != null);
-    }, []);
 
     return (
         <>
@@ -50,7 +44,7 @@ function HeaderContent() {
                     <HStack gap='5' display="flex">
 
                         {
-                            isClient ?
+                            token ?
                                 <HStack gap={4}>
                                     <Button
                                         px='40px'
