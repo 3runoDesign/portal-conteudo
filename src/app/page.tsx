@@ -72,7 +72,6 @@ const Home = () => {
       setHasMore(false);
     } else {
       setPosts((prevPosts) => {
-        // Remove duplicatas antes de adicionar novos posts
         const newPosts = data.filter(
           (newPost: Post) => !prevPosts.some((prevPost: Post) => prevPost.id === newPost.id)
         );
