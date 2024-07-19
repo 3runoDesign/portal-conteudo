@@ -4,20 +4,8 @@ import "../styles/globals.css";
 import StoreProvider from '~/lib/Provider/StoreProvider';
 import { UIProvider } from '~/lib/Provider/UIProvider';
 import {
-  chakra,
-  Drawer,
-  DrawerBody,
-  DrawerContent,
-  DrawerFooter,
-  DrawerOverlay,
   Flex,
   Box,
-  FlexProps,
-  HStack,
-  Link,
-  Text,
-  useDisclosure,
-  VStack,
 } from '@chakra-ui/react';
 
 const inter = Inter({ subsets: ["latin"] });
