@@ -10,26 +10,29 @@ import {
   InputGroup,
   useToast,
   ToastId,
-  VStack,
   Link,
   HStack,
-  Box
+  Box,
+  chakra
 } from "@chakra-ui/react";
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { useRouter } from 'next/navigation'
 import { useAppSelector } from '~/lib/store';
-import Header from "~/common/components/header";
+
+interface RegisterFormInputs {
+  username: string;
+  password: string;
+}
 
 const Register = () => {
-  const toast = useToast()
+  const toast = useToast();
   const toastIdRef = useRef<ToastId | undefined>(undefined);
   const token = useAppSelector((state) => state.auth.token);
 
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const router = useRouter();
+  const { register, handleSubmit, setError, formState: { errors } } = useForm<RegisterFormInputs>();
 
-  
+  const router = useRouter();
 
 function errorToast(msg: string) {
     toastIdRef.current = toast({ status: "error", description: msg })
@@ -41,62 +44,66 @@ function errorToast(msg: string) {
     }
   }, [router]);
 
-  const handleRegister = async () => {
+  const onSubmit: SubmitHandler<RegisterFormInputs> = async (data) => {
     const response = await fetch('/api/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify(data),
     });
 
     if (response.ok) {
+      toastIdRef.current = toast({ status: "success", description: "usuário criado com sucesso!" });
       router.push('/login');
     } else {
-      errorToast('Falha ao criar registro');
+      const errorMessage = 'Falha ao criar registro';
+      setError('username', { type: 'manual', message: errorMessage });
+      setError('password', { type: 'manual', message: errorMessage });
+      toastIdRef.current = toast({ status: "error", description: errorMessage });
     }
   };
-
   return (
     <>
       <Center minH={"100vh"} flexDirection="column" gap={"4"}>
-        <Heading>Login page</Heading>
+      <Heading>Página de Registro</Heading>
 
-        <form action="" autoComplete="off">
-          <FormControl mb={4}>
-            <FormLabel htmlFor="email">usuário</FormLabel>
-            <Input id="email" value={username}
-              onChange={(e) => setUsername(e.target.value)} />
-          </FormControl>
-          <FormControl mb={4}>
-            <FormLabel htmlFor="password">senha</FormLabel>
-            <InputGroup>
-              <Input id="password" type={"password"} value={password}
-                onChange={(e) => setPassword(e.target.value)} />
-            </InputGroup>
-          </FormControl>
-        </form>
-
-
+      <chakra.form w="100%" maxW="380px" onSubmit={handleSubmit(onSubmit)} autoComplete="off">
+        <FormControl mb={4} isInvalid={!!errors.username}>
+          <FormLabel htmlFor="username">Usuário</FormLabel>
+          <Input
+            id="username"
+            {...register('username', { required: 'Usuário é obrigatório' })}
+          />
+          {errors.username && <span>{errors.username.message}</span>}
+        </FormControl>
+        <FormControl mb={4} isInvalid={!!errors.password}>
+          <FormLabel htmlFor="password">Senha</FormLabel>
+          <InputGroup>
+            <Input
+              id="password"
+              type="password"
+              {...register('password', { required: 'Senha é obrigatória' })}
+            />
+          </InputGroup>
+          {errors.password && <span>{errors.password.message}</span>}
+        </FormControl>
         <Box>
-          <Button colorScheme={"blue"} color={"white"} onClick={handleRegister}>
+          <Button type="submit" colorScheme="blue" color="white">
             Registrar
           </Button>
         </Box>
-        <HStack mt={16} gap={2}>
-          <Button colorScheme={"green"} color={"white"}>
-            <Link href="login/">
-              Logar
-            </Link>
-          </Button>
+      </chakra.form>
 
-          <Button variant='ghost' color={"black"}>
-            <Link href="/">
-              voltar para home
-            </Link>
-          </Button>
-        </HStack>
-      </Center>
+      <HStack mt={16} gap={2}>
+        <Button colorScheme="green" color="white">
+          <Link href="login/">Logar</Link>
+        </Button>
+        <Button variant="ghost" color="black">
+          <Link href="/">Voltar para home</Link>
+        </Button>
+      </HStack>
+    </Center>
     </>
   );
 };

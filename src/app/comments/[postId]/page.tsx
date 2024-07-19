@@ -24,25 +24,25 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useAppSelector } from '../../../lib/store';
 import { useParams, useRouter } from 'next/navigation'
 import { Comment } from '../../../types';
+import { useForm, SubmitHandler } from 'react-hook-form';
+
+interface CommentFormInputs {
+  content: string;
+}
 
 const Comments = () => {
-  const toast = useToast()
+  const toast = useToast();
   const toastIdRef = useRef<ToastId | undefined>(undefined);
 
   const auth = useAppSelector((state) => state.auth);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [content, setContent] = useState('');
   const router = useRouter();
-
   const params = useParams();
   const postId = params.postId as string;
 
-  function errorToast(msg: string) {
-    toastIdRef.current = toast({ status: "error", description: msg })
-  }
+  const { register, handleSubmit, setError, reset, formState: { errors } } = useForm<CommentFormInputs>();
 
   useEffect(() => {
-    console.log("usur:: ", auth.userId)
     const fetchComments = async () => {
       const response = await fetch(`/api/comments?postId=${postId}`, {
         headers: {
@@ -60,23 +60,25 @@ const Comments = () => {
     }
   }, [auth, postId, router]);
 
-  const handleAddComment = async () => {
-    const userId = auth.userId
+  const onSubmit: SubmitHandler<CommentFormInputs> = async (data) => {
+    const userId = auth.userId;
     const response = await fetch('/api/comments', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${auth.token}`,
       },
-      body: JSON.stringify({ content, postId, userId }),
+      body: JSON.stringify({ ...data, postId, userId }),
     });
 
     if (response.ok) {
-      setContent('');
       const newComment = await response.json();
       setComments((prev) => [...prev, newComment]);
+      reset();
     } else {
-      errorToast("Falha ao adicionar o comentário")
+      const errorMessage = 'Falha ao adicionar o comentário';
+      setError('content', { type: 'manual', message: errorMessage });
+      toastIdRef.current = toast({ status: "error", description: errorMessage});
     }
   };
 
@@ -94,77 +96,78 @@ const Comments = () => {
         setComments((prev) => prev.filter((comment) => comment.id !== commentId));
       } else {
         const errorData = await response.json();
-        errorToast(`Falha ao deletar o comentário: ${errorData.message || 'Unknown error'}`)
+        toastIdRef.current = toast({ status: "error", description:`Falha ao deletar o comentário: ${errorData.message || 'Unknown error'}`})
       }
     } catch (error) {
       console.error('Error deleting comment:', error);
-      errorToast('Ocorreu um erro ao tentar excluir o comentário.');
+      toastIdRef.current = toast({ status: "error", description:'Ocorreu um erro ao tentar excluir o comentário.'});
     }
   };
 
   return (
     <>
-      <Center minH={"50vh"} flexDirection="column" gap={"4"}>
-        <Heading>Post</Heading>
+    <Center minH={"50vh"} flexDirection="column" gap={"4"}>
+      <Heading>Post</Heading>
 
-        <form action="" autoComplete="off">
-          <FormControl mb={4}>
-            <FormLabel htmlFor="conteudo">conteúdo</FormLabel>
-            <Textarea id="conteudo" value={content}
-              onChange={(e) => setContent(e.target.value)} />
-          </FormControl>
-        </form>
-
+      <chakra.form w="100%" maxW="380px" onSubmit={handleSubmit(onSubmit)} autoComplete="off">
+        <FormControl mb={4} isInvalid={!!errors.content}>
+          <FormLabel htmlFor="content">Conteúdo</FormLabel>
+          <Textarea
+            id="content"
+            placeholder="Adicione um comentário"
+            {...register('content', { required: 'Conteúdo é obrigatório' })}
+          />
+          {errors.content && <span>{errors.content.message}</span>}
+        </FormControl>
         <Box>
-          <Button colorScheme={"blue"} color={"white"} onClick={handleAddComment}>
-            Criar post
+          <Button type="submit" colorScheme={"blue"} color={"white"}>
+            Criar comentário
           </Button>
         </Box>
+      </chakra.form>
 
-        <chakra.h1
-          maxW='14ch'
-          mx='auto'
-          fontSize="14px"
-          fontFamily='heading'
-          letterSpacing='tighter'
-          fontWeight='extrabold'
-          mb='16px'
-          textAlign="center"
-          lineHeight='1'
-        >
-          comentários
-        </chakra.h1>
+      <chakra.h1
+        maxW='14ch'
+        mx='auto'
+        fontSize="14px"
+        fontFamily='heading'
+        letterSpacing='tighter'
+        fontWeight='extrabold'
+        mb='16px'
+        textAlign="center"
+        lineHeight='1'
+      >
+        Comentários
+      </chakra.h1>
 
-        <VStack gap={4}>
-          {comments.map((comment) => (
-            <Card key={comment.id} maxW={450}>
-              <CardBody>
-                <HStack gap={2}>
-                  <Icon as={ChatIcon} color='blue.500' />
-                  <HStack gap={4}>
-                    <Text>{comment.content}</Text>
+      <VStack gap={4}>
+        {comments.map((comment) => (
+          <Card key={comment.id} maxW={450}>
+            <CardBody>
+              <HStack gap={2}>
+                <Icon as={ChatIcon} color='blue.500' />
+                <HStack gap={4}>
+                  <Text>{comment.content}</Text>
 
-                    {auth.userId == comment.userId ? <Button px={8} colorScheme='red' size='xs' onClick={() => handleDeleteComment(comment.id)}>Delete</Button> : <></>}
-                  </HStack>
+                  {auth.userId === comment.userId ? (
+                    <Button px={8} colorScheme='red' size='xs' onClick={() => handleDeleteComment(comment.id)}>Delete</Button>
+                  ) : null}
                 </HStack>
-              </CardBody>
-            </Card>
-          ))}
-        </VStack>
+              </HStack>
+            </CardBody>
+          </Card>
+        ))}
+      </VStack>
+    </Center>
 
-
-      </Center>
-      <Center minH={"50vh"} flexDirection="column" gap={"4"}>
-        <HStack mt={16} gap={2}>
-          <Button variant='ghost' color={"black"}>
-            <Link href="/">
-              voltar para home
-            </Link>
-          </Button>
-        </HStack>
-      </Center>
-    </>
-
+    <Center minH={"50vh"} flexDirection="column" gap={"4"}>
+      <HStack mt={16} gap={2}>
+        <Button variant='ghost' color={"black"}>
+          <Link href="/">Voltar para home</Link>
+        </Button>
+      </HStack>
+    </Center>
+  </>
   );
 };
 
